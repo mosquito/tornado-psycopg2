@@ -2,6 +2,7 @@
 # encoding: utf-8
 import functools
 import logging
+from psycopg2._psycopg import QueryCanceledError
 from concurrent import futures
 from psycopg2 import connect
 import psycopg2
@@ -27,12 +28,15 @@ class AsyncConnection(object):
 
         self.__io_loop = IOLoop.current()
         self.__connected = False
-        self.__
 
         log.debug("Trying to connect to postgresql")
         f = self.__wait()
         self.__io_loop.add_future(f, self.__on_connect)
         self.__queue = Queue()
+        self.__has_active_cursor = False
+
+        for method in ('get_backend_pid', 'get_parameter_status'):
+            setattr(self, method, self.__futurize(method))
 
     def __on_connect(self, result):
         log.debug("Connection establishment")
@@ -43,6 +47,9 @@ class AsyncConnection(object):
     def _loop(self):
         log.debug("Starting queue loop")
         while self.__connected:
+            while self.__has_active_cursor or self.__connection.isexecuting():
+                yield sleep(0.001)
+
             func, future = yield self.__queue.get()
             result = func()
             if isinstance(result, Future):
@@ -55,7 +62,12 @@ class AsyncConnection(object):
     def __wait(self):
         log.debug("Waiting for events")
         while not (yield sleep(0.001)):
-            state = self.__connection.poll()
+            try:
+                state = self.__connection.poll()
+            except QueryCanceledError:
+                yield sleep(0.1)
+                continue
+
             f = Future()
 
             def resolve(fileno, io_op):
@@ -76,9 +88,11 @@ class AsyncConnection(object):
 
     def __on_cursor_open(self, cursor):
         self.__has_active_cursor = True
+        log.debug('Opening cursor')
 
-    def __on_cursor_clode(self, cursor):
-        pass
+    def __on_cursor_close(self, cursor):
+        self.__has_active_cursor = False
+        log.debug('Closing active cursor')
 
     def cursor(self):
         f = Future()
@@ -88,23 +102,36 @@ class AsyncConnection(object):
                 AsyncCursor,
                 self.__connection,
                 self.__thread_pool,
-                on_open=self.__on_cursor_close,
+                self.__wait,
+                on_open=self.__on_cursor_open,
                 on_close=self.__on_cursor_close,
             ), f)
         )
         return f
 
-    def __getattr__(self, item):
+    def cancel(self):
+        return self.__thread_pool.submit(self.__connection.cancel)
+
+    def close(self):
+        self.__has_active_cursor = True
+
+        @coroutine
+        def closer():
+            while not (yield self.__queue.empty()):
+                func, future = yield self.__queue.get()
+                future.set_exception(psycopg2.Error("Connection closed"))
+
+            self.__io_loop.add_callback(self.__connection.close)
+
+    def __futurize(self, item):
         attr = getattr(self.__connection, item)
-        if callable(attr):
-            @functools.wraps(attr)
-            def wrap(*args, **kwargs):
-                f = Future()
-                self.__io_loop.add_callback(
-                    self.__queue.put,
-                    (functools.partial(attr, *args, **kwargs), f)
-                )
-                return f
-            return wrap
-        else:
-            return attr
+
+        @functools.wraps(attr)
+        def wrap(*args, **kwargs):
+            f = Future()
+            self.__io_loop.add_callback(
+                self.__queue.put,
+                (functools.partial(attr, *args, **kwargs), f)
+            )
+            return f
+        return wrap

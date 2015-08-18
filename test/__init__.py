@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import os
-import logging
 from tornado.ioloop import IOLoop
 from tornado.testing import AsyncTestCase
-from tornado.log import enable_pretty_logging
-
-
-logging.getLogger().setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO))
-enable_pretty_logging(logger=logging.getLogger())
+from tornado_psycopg2.connection import AsyncConnection
 
 
 class TestBase(AsyncTestCase):
@@ -22,3 +17,10 @@ class TestBase(AsyncTestCase):
     @property
     def io_loop(self):
         return IOLoop.current()
+
+    def setUp(self):
+        self.connection = AsyncConnection(self.DSN)
+        print self.connection
+
+    def tearDown(self):
+        self.connection.close()
