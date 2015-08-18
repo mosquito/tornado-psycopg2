@@ -8,4 +8,5 @@ export LOG_LEVEL=debug
 exec nosetests \
         --logging-format='%(asctime)s [%(name)s] %(levelname)-6s %(message)s' \
         --with-coverage \
+        --cover-min-percentage=93 \
         --cover-package=tornado_psycopg2
