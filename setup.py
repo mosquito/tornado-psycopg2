@@ -21,7 +21,7 @@ setup(
     long_description=open('README.rst').read(),
     description='Tornado driver for support asynchronous mode for psycopg2.',
     include_package_data=False,
-    packages=('tornado_psycopg2',),
-    requires=('Python (>2.6)',),
+    packages=['tornado_psycopg2'],
+    requires=['Python (>2.6)'],
     install_requires=[i.strip() for i in open('requirements.txt').read().split('\n') if i],
 )
