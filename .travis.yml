@@ -13,5 +13,6 @@ install: "pip install -e ."
 addons:
   postgresql: "9.4"
 before_script:
-  - psql -c 'CREATE USER test WITH password "test"; CREATE DATABASE test_async_pg;' -U postgres
+  - psql -c "CREATE USER test WITH password 'test';" -U postgres
+  - psql -c "CREATE DATABASE test_async_pg OWNER test;" -U postgres
 script: ./run-tests
