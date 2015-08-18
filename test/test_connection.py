@@ -59,4 +59,4 @@ class ConnectionTestCase(TestBase):
     @gen_test
     def test_006_get_parameter_status(self):
         result = yield self.connection.get_parameter_status('TIME ZONE')
-        self.assertIsNone(result)
+        self.assertTrue(result is None)
