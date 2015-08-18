@@ -20,7 +20,6 @@ class TestBase(AsyncTestCase):
 
     def setUp(self):
         self.connection = AsyncConnection(self.DSN)
-        print self.connection
 
     def tearDown(self):
         self.connection.close()
