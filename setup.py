@@ -17,7 +17,6 @@ setup(
         'Environment :: Console',
         'Programming Language :: Python',
     ),
-
     long_description=open('README.rst').read(),
     description='Tornado driver for support asynchronous mode for psycopg2.',
     include_package_data=False,
