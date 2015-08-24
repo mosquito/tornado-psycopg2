@@ -17,6 +17,7 @@ log = logging.getLogger("psycopg.async.connection")
 
 
 class AsyncConnection(object):
+
     def __init__(self, *args, **kwargs):
         kwargs['async'] = True
         self.__connection = connect(*args, **kwargs)
@@ -94,7 +95,7 @@ class AsyncConnection(object):
         self.__has_active_cursor = False
         log.debug('Closing active cursor')
 
-    def cursor(self):
+    def cursor(self, **kwargs):
         f = Future()
         self.__io_loop.add_callback(
             self.__queue.put,
@@ -105,6 +106,7 @@ class AsyncConnection(object):
                 self.__wait,
                 on_open=self.__on_cursor_open,
                 on_close=self.__on_cursor_close,
+                **kwargs
             ), f)
         )
         return f

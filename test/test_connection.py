@@ -4,6 +4,7 @@ import logging
 from random import choice, randint
 from tornado.gen import coroutine
 from tornado.testing import gen_test
+from psycopg2.extras import NamedTupleCursor
 from test import TestBase
 
 
@@ -11,6 +12,7 @@ log = logging.getLogger("tests")
 
 
 class ConnectionTestCase(TestBase):
+
     @gen_test
     def test_001_cursor(self):
         cursor = yield self.connection.cursor()
@@ -60,3 +62,11 @@ class ConnectionTestCase(TestBase):
     def test_006_get_parameter_status(self):
         result = yield self.connection.get_parameter_status('TIME ZONE')
         self.assertTrue(result is None)
+
+    @gen_test
+    def test_007_namedtuple_cursor(self):
+        with (yield self.connection.cursor(cursor_factory=NamedTupleCursor)) as cursor:
+            yield cursor.execute("select 1 as result")
+            result = yield cursor.fetchone()
+
+        self.assertEqual(result.result, 1)

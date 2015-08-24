@@ -5,8 +5,9 @@ from tornado.gen import coroutine, Return
 
 
 class AsyncCursor(object):
-    def __init__(self, connection, thread_pool, waiter, on_open=None, on_close=None):
-        self.__cursor = connection.cursor()
+
+    def __init__(self, connection, thread_pool, waiter, on_open=None, on_close=None, **kwargs):
+        self.__cursor = connection.cursor(**kwargs)
         self.__thread_pool = thread_pool
         self.__on_open = on_open
         self.__on_close = on_close
