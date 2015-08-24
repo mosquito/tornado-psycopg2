@@ -20,12 +20,13 @@ class AsyncConnection(object):
 
     def __init__(self, *args, **kwargs):
         kwargs['async'] = True
-        self.__connection = connect(*args, **kwargs)
 
         if "thread_pool" in kwargs:
             self.__thread_pool = kwargs.pop('thread_pool')
         else:
             self.__thread_pool = futures.ThreadPoolExecutor(cpu_count())
+
+        self.__connection = connect(*args, **kwargs)
 
         self.__io_loop = IOLoop.current()
         self.__connected = False
